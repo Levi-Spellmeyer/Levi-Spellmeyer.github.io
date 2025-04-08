@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera Toggle</title>
+</head>
+<body>
+  <video id="videoElement" autoplay></video>
+  <button id="switchCameraButton">Switch Camera</button>
+
+  <script>
+    let currentFacingMode = "user"; // Default to front-facing camera
+
+    async function startCamera(facingMode) {
+      const constraints = {
+        video: { facingMode: facingMode },
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const videoElement = document.getElementById("videoElement");
+        videoElement.srcObject = stream;
+      } catch (error) {
+        console.error("Error accessing camera: ", error);
+      }
+    }
+
+    document.getElementById("switchCameraButton").addEventListener("click", () => {
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+      startCamera(currentFacingMode);
+    });
+
+    // Start with the front-facing camera
+    startCamera(currentFacingMode);
+  </script>
+</body>
+</html>
