@@ -40,18 +40,19 @@
 
 
 
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera and Barcode</title>
+    <title>Camera, Barcode Generator, and Scanner</title>
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.4.0/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
 <body>
-    <h1>Camera Feed with Barcode Feature</h1>
+    <h1>Camera Feed with Barcode Features</h1>
 
     <!-- Camera Feed Section -->
     <video id="video" autoplay style="width: 100%; max-width: 500px; border: 2px solid #000;"></video>
@@ -65,6 +66,11 @@
     <br>
     <button onclick="generateAndDownloadBarcode()">Generate Barcode & Download PDF</button>
     <br>
+
+    <!-- Barcode Scanning Section -->
+    <h2>Scan Barcode from Camera Feed</h2>
+    <button onclick="startBarcodeScanner()">Start Scanning</button>
+    <p id="scannedData" style="font-weight: bold;"></p>
 
     <script>
         let currentFacingMode = 'environment'; // Default to rear camera
@@ -123,6 +129,39 @@
             const pdf = new jsPDF();
             pdf.addImage(barcodeImage, 'PNG', 10, 10, 180, 50); // Add barcode to PDF
             pdf.save("barcode.pdf"); // Save as PDF
+        }
+
+        // Start barcode scanner using QuaggaJS
+        function startBarcodeScanner() {
+            Quagga.init({
+                inputStream: {
+                    type: "LiveStream",
+                    target: videoElement,
+                    constraints: {
+                        facingMode: currentFacingMode // Use the current camera facing mode
+                    }
+                },
+                decoder: {
+                    readers: ["code_128_reader"] // Specify barcode type
+                }
+            }, err => {
+                if (err) {
+                    console.error("Error initializing barcode scanner:", err);
+                    alert("Failed to start barcode scanner.");
+                    return;
+                }
+                Quagga.start();
+            });
+
+            // Listen for detected barcodes
+            Quagga.onDetected(data => {
+                const scannedCode = data.codeResult.code; // Get the scanned data
+                console.log("Barcode detected:", scannedCode);
+                document.getElementById("scannedData").innerText = `Scanned Data: ${scannedCode}`;
+                
+                // Alert the scanned barcode
+                alert(`Scanned Barcode: ${scannedCode}`);
+            });
         }
     </script>
 </body>
