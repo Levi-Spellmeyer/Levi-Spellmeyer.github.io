@@ -65,30 +65,3 @@
             });
         }
 
-        // Function to call Cloudmersive Barcode API
-        function lookupProduct(upc) {
-            const apiKey = '748e1d34-89b3-454d-81f7-c2bc4db8678d'; // Your actual API key
-            const apiUrl = `https://api.cloudmersive.com/barcode/lookup-ean?BarcodeValue=${upc}`;
-            
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Display product details returned by Cloudmersive API
-                console.log("Cloudmersive Response:", data);
-                const productDetails = data.Product ? data.Product.Name : "No product details found.";
-                document.getElementById("scannedData").innerText += ` | Product Info: ${productDetails}`;
-            })
-            .catch(err => {
-                console.error("Error fetching product details:", err);
-                alert("Failed to retrieve product details.");
-            });
-        }
-    </script>
-</body>
-</html>
