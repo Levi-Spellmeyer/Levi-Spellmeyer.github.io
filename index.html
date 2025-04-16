@@ -12,26 +12,41 @@
     <video id="video" autoplay style="width: 100%; max-width: 500px; border: 2px solid #000;"></video>
     <p id="scannedData" style="font-weight: bold;"></p>
     <button onclick="startBarcodeScanner()">Start Scanning</button>
+    <br>
+    <button onclick="toggleCamera()">Switch Camera</button>
 
     <script>
         // Variables
         let currentFacingMode = 'environment'; // Default to rear camera
         const videoElement = document.getElementById('video');
+        let stream = null; // To store the camera stream
 
         // Start camera
         function startCamera(facingMode) {
             navigator.mediaDevices.getUserMedia({
                 video: { facingMode: facingMode }
             })
-            .then(stream => {
+            .then(newStream => {
+                stream = newStream; // Store the stream
                 videoElement.srcObject = stream;
             })
             .catch(err => {
                 console.error("Error accessing camera:", err);
-                alert("Could not access the camera.");
+                alert("Could not access the camera. Please check your permissions and ensure no other app is using the camera.");
             });
         }
 
+        // Toggle between front and rear cameras
+        function toggleCamera() {
+            if (stream) {
+                const tracks = stream.getTracks(); // Stop the current stream
+                tracks.forEach(track => track.stop());
+            }
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startCamera(currentFacingMode);
+        }
+
+        // Start the camera with the default rear camera
         startCamera(currentFacingMode);
 
         // Start barcode scanner using Quagga
@@ -48,7 +63,7 @@
             }, err => {
                 if (err) {
                     console.error("Error initializing scanner:", err);
-                    alert("Failed to start barcode scanner.");
+                    alert("Failed to start barcode scanner. Please try again or check for issues.");
                     return;
                 }
                 Quagga.start();
@@ -87,7 +102,7 @@
             })
             .catch(err => {
                 console.error("Error fetching product details:", err);
-                alert("Failed to retrieve product details.");
+                alert("Failed to retrieve product details. Please check your internet connection or API setup.");
             });
         }
     </script>
