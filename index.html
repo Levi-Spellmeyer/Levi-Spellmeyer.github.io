@@ -3,107 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barcode Scanner with Cloudmersive Integration</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <title>Barcode Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #barcode {
+            margin: 20px;
+        }
+
+        input {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            width: 300px;
+            max-width: 100%;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Barcode Scanner and Product Lookup</h1>
-    <!-- Camera Feed -->
-    <video id="video" autoplay style="width: 100%; max-width: 500px; border: 2px solid #000;"></video>
-    <p id="scannedData" style="font-weight: bold;"></p>
-    <button onclick="startBarcodeScanner()">Start Scanning</button>
-    <br>
-    <button onclick="toggleCamera()">Switch Camera</button>
+    <h1>Generate and Download Barcodes</h1>
+    <input type="text" id="barcodeInput" placeholder="Enter text or code">
+    <button onclick="generateBarcode()">Generate Barcode</button>
+    <button onclick="downloadBarcode()">Download as PDF</button>
+    <svg id="barcode"></svg>
 
     <script>
-        // Variables
-        let currentFacingMode = 'environment'; // Default to rear camera
-        const videoElement = document.getElementById('video');
-        let stream = null; // To store the camera stream
+        // Function to generate barcode
+        function generateBarcode() {
+            const input = document.getElementById("barcodeInput").value;
+            const barcodeElement = document.getElementById("barcode");
 
-        // Start camera
-        function startCamera(facingMode) {
-            navigator.mediaDevices.getUserMedia({
-                video: { facingMode: facingMode }
-            })
-            .then(newStream => {
-                stream = newStream; // Store the stream
-                videoElement.srcObject = stream;
-            })
-            .catch(err => {
-                console.error("Error accessing camera:", err);
-                alert("Could not access the camera. Please check your permissions and ensure no other app is using the camera.");
-            });
-        }
-
-        // Toggle between front and rear cameras
-        function toggleCamera() {
-            if (stream) {
-                const tracks = stream.getTracks(); // Stop the current stream
-                tracks.forEach(track => track.stop());
+            if (!input) {
+                alert("Please enter a valid text or code!");
+                return;
             }
-            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-            startCamera(currentFacingMode);
-        }
 
-        // Start the camera with the default rear camera
-        startCamera(currentFacingMode);
-
-        // Start barcode scanner using Quagga
-        function startBarcodeScanner() {
-            Quagga.init({
-                inputStream: {
-                    type: "LiveStream",
-                    target: videoElement,
-                    constraints: { facingMode: currentFacingMode }
-                },
-                decoder: {
-                    readers: ["upc_reader", "ean_reader"] // Specify barcode types
-                }
-            }, err => {
-                if (err) {
-                    console.error("Error initializing scanner:", err);
-                    alert("Failed to start barcode scanner. Please try again or check for issues.");
-                    return;
-                }
-                Quagga.start();
-            });
-
-            Quagga.onDetected(data => {
-                const scannedCode = data.codeResult.code; // Get the scanned data
-                document.getElementById("scannedData").innerText = `Scanned Code: ${scannedCode}`;
-                console.log("Scanned Code:", scannedCode);
-
-                // Call Cloudmersive API with the scanned code
-                lookupProduct(scannedCode);
-                Quagga.stop();
+            JsBarcode(barcodeElement, input, {
+                format: "CODE128",
+                lineColor: "#000",
+                width: 2,
+                height: 100,
+                displayValue: true
             });
         }
 
-        // Function to call Cloudmersive Barcode API
-        function lookupProduct(upc) {
-            const apiKey = '748e1d34-89b3-454d-81f7-c2bc4db8678d'; // Your actual API key
-            const apiUrl = `https://api.cloudmersive.com/barcode/lookup-ean?BarcodeValue=${upc}`;
+        // Function to download barcode as PDF
+        function downloadBarcode() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const barcodeElement = document.getElementById("barcode");
             
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Display product details returned by Cloudmersive API in an alert
-                console.log("Cloudmersive Response:", data);
-                const productDetails = data.Product ? data.Product.Name : "No product details found.";
-                alert(`Scanned Code: ${upc}\nProduct Info: ${productDetails}`);
-                document.getElementById("scannedData").innerText += ` | Product Info: ${productDetails}`;
-            })
-            .catch(err => {
-                console.error("Error fetching product details:", err);
-                alert("Failed to retrieve product details. Please check your internet connection or API setup.");
-            });
+            if (!barcodeElement.querySelector("rect")) {
+                alert("Please generate a barcode first!");
+                return;
+            }
+
+            const svgData = new XMLSerializer().serializeToString(barcodeElement);
+            const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(svgBlob);
+
+            const img = new Image();
+            img.src = url;
+
+            img.onload = function () {
+                pdf.addImage(img, "PNG", 10, 10, 180, 50); // Position and size in the PDF
+                pdf.save("barcode.pdf");
+                URL.revokeObjectURL(url); // Clean up the URL
+            };
         }
     </script>
 </body>
